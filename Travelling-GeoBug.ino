@@ -28,15 +28,15 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 External library used:
 OLEDFourBit, PWMServo, TinyGPS and EEPROMAnything
 
-Code for RFID reader is from http://playground.arduino.cc/Code/ID12
+Code for RFID reader is from http://playground.arduino.cc/Code/ID12 !!! DEFUNCT
 
 I have used the V2 of the Sundial shield. https://www.sundial.com/shop/version-2-0-shield-kit/
 However - I made a few adjustments to it
 1. I use a 4 * 20 OLED display from Newhaven. 
    So much more fun with more rows and columns. It is an NHD-0420DZW-AG5, green display.
    Fully readable in bright sunshine.
-   To use that I have to use a modified library instead of LiquidCrystal:
-   from http://code.google.com/p/uberfridge/source/browse/#svn/trunk/arduino/OLEDFourBit
+   To use that I have to use a modified library instead of LiquidCrystal: OLEDFourBit
+   Included in this repository.
 2. I use an EM-411 GPS
 (NOTE! The TX and RX pins are swapped on this module, I have taken care of that in the code.)
 3. I have added a RFID reader for accessing the box as admin, it is a RDM630 module.
@@ -76,35 +76,35 @@ Destination.LATITUDE = 55.478412;
 Destination.LONGITUDE = 13.136882;
 Then change the RFID code for the admin tags.
 I have used four RFID tags:
-One for resetting the whole thing (RED tag), resets coordiantes, attempt counter
+One for resetting the whole thing (RED tag), resets coordinates, attempt counter
 One for resetting the attempt counter (YELLOW tag)
 One for open the box without changing anything (one of my BLUE tags)
-One for swithing display the programmed coordinates (another BLUE tag)
+One for switching display the programmed coordinates (another BLUE tag)
 
 The Program switch is to be used by the last user that found a place. 
 The user then needs to go to a new place and press the start button
-to progam new coordinates.
+to program new coordinates.
 
 */
-// Uncomment to display debug code, useful when adding functions or check the GPS
+// Un-comment to display debug code, useful when adding functions or check the GPS
 //#define DEBUGCODE
-// Uncomment to use LCD display instead
+// Un-comment to use LCD display instead
 //#define USEOLED
 // Include the necessary libraries
 #include <SoftwareSerial.h> // Standard Arduino library
 #include <EEPROM.h>         // Standard Arduino Library
-#include <PWMServo.h>       // Include PWMServo
-#include <TinyGPS.h>        // Include TinyGPS
+#include <PWMServo.h>       // Standard Arduino Library
+#include <TinyGPS.h>        // Standard Arduino Library
 #ifdef USEOLED
-  #include <OLEDFourBit.h>    // Include a custom OLED library, see http://code.google.com/p/uberfridge/source/browse/#svn/trunk/arduino/OLEDFourBit
+  #include <OLEDFourBit.h>    // Include a custom OLED library
 #else
   #include <LiquidCrystal.h>  // Include LCD library
 #endif
-#include "EEPROMAnything.h" // Include the library for writing floats to EEPROM: http://playground.arduino.cc/Code/EEPROMWriteAnything
+#include "EEPROMAnything.h" // Include the library for writing floats to EEPROM
 
 // -----------------------------------------------------------------------
 // User changeable variables and constants. 
-// NOTE: Coordinates gets written into eeprom on startup if it is a new Arduino
+// NOTE: Coordinates gets written into EEPROM on startup if it is a new Arduino
 static const float DEST_LATITUDE =  55.478412;                            // Change to your starting position for latitude
 static const float DEST_LONGITUDE = 13.136882;                            // Change to your starting position for longitude
 char RFID_ADMIN_TAG[]  = "000000000000";                                  // Tag serial number, for reset everything, RED
@@ -118,9 +118,9 @@ static const byte DEF_ATTEMPT_MAX = 50;                                   // Max
 // End of user changeable variables and constants
 // ----------------------------------------------
 // Other definitions, should not be changed
-static const byte EEPROM_ATTEMPT_COUNTER = 1;                             // Position in eeprom memory to store the attempt counter.
-static const byte EEPROM_FOUND_TARGET = 2;                                // Position in eeprom memory to store the found flag.
-static const byte EEPROM_COORDINATES = 10;                                // Position in eeprom to store coordinates. Saved as 2 * float, eg. 8 bytes
+static const byte EEPROM_ATTEMPT_COUNTER = 1;                             // Position in EEPROM memory to store the attempt counter.
+static const byte EEPROM_FOUND_TARGET = 2;                                // Position in EEPROM memory to store the found flag.
+static const byte EEPROM_COORDINATES = 10;                                // Position in EEPROM to store coordinates. Saved as 2 * float, eg. 8 bytes
 static const byte OLED_Columns = 20;                                      // OLED Columns. I Use a 20 * 4 OLED, so much more useful <big grin>
 static const byte OLED_Rows = 4;                                          // OLED Rows
 static const int  RFIDSerialRate = 9600 ;                                 // RFID Reader Serial Port Speed
@@ -131,17 +131,17 @@ static const byte GPS_RxPin = 3, GPS_TxPin = 4;                           // Pin
 static const byte RFID_RxPin = 6, RFID_TxPin = 10;                        // Pins for RFID reader, don't connect pin 10, it is not used
 static const byte OLED_RS = 5, OLED_E = 7, OLED_RW = 8;                   // OLED RS, E and RW
 static const byte OLED_DB4=14, OLED_DB5=15, OLED_DB6=16, OLED_DB7=17;     // OLED DataPins
-static const byte ServoControl = 9;                                       // Pin för the servo
+static const byte ServoControl = 9;                                       // Pin for the servo
 static const byte Speaker = 11;                                           // Pin for the Speaker / Piezo
-static const byte PololuSwitch = 12;                                      // Pin for pololu switch
+static const byte PololuSwitch = 12;                                      // Pin for Pololu switch
 static const byte RadiusSwitch = 18;                                      // Pin for radius switch
 static const byte ProgramSwitch = 19;                                     // Pin for program switch
 
-struct destination_t                                                      // I use EEPROMAnything to store coordinates in eeprom.
+struct destination_t                                                      // I use EEPROMAnything to store coordinates in EEPROM.
 {
   float LATITUDE;                                                         // Latitude
   float LONGITUDE;                                                        // Longitude
-} Destination;                                                            // Our destination in eeprom
+} Destination;                                                            // Our destination in EEPROM
 
 boolean AdminTag = false;                                                 // Placeholder for RFID admin tag, true or false
 boolean ProgramMode = false;                                              // Placeholder for programming new coordinates
@@ -170,9 +170,9 @@ void setup() // The Arduino setup() function
   servo.attach(ServoControl);                               // Attach the Servo Motor
   servo.write(SERVO_CLOSE);                                 // Make sure the lock is in closed position
   pinMode(ProgramSwitch, INPUT);                            // Set port to input mode to read the program switch.
-  digitalWrite(ProgramSwitch, HIGH);                        // Activate internal pullup resitor, we are using a NO switch
+  digitalWrite(ProgramSwitch, HIGH);                        // Activate internal pull-up resistor, we are using a NO switch
   pinMode(RadiusSwitch, INPUT);                             // Set port to input mode to read the radius switch.
-  digitalWrite(RadiusSwitch, HIGH);                         // Activate internal pullup resitor, we are using a NO switch
+  digitalWrite(RadiusSwitch, HIGH);                         // Activate internal pull-up resistor, we are using a NO switch
   pinMode(PololuSwitch, OUTPUT);                            // Make sure Pololu switch pin is OUTPUT
   digitalWrite(PololuSwitch, LOW);                          // and LOW
   pinMode(LED_BUTTON, OUTPUT);                              // Set pin as output
@@ -189,9 +189,9 @@ void setup() // The Arduino setup() function
   GPS.begin(4800);                                          // Initialize port at 4800 baud for the EM-411 module
   GPS.listen();                                             // Start listen to this port instead of the RFID-port
 //  if (EEPROM.read(EEPROM_COORDINATES) == 0xFF ) {           // Check if this is a brand new Arduino (or reset by RFID tag), cell is 0xFF if it is.
-//   Destination.LATITUDE = DEST_LATITUDE;                    // Store the initial coordinate to eeprom
+//   Destination.LATITUDE = DEST_LATITUDE;                    // Store the initial coordinate to EEPROM
 //   Destination.LONGITUDE = DEST_LONGITUDE;                  // It will be overwritten by the new coordinates set by user
-//   EEPROM_writeAnything(EEPROM_COORDINATES, Destination);   // Write it to eeprom
+//   EEPROM_writeAnything(EEPROM_COORDINATES, Destination);   // Write it to EEPROM
 //  }
   EEPROM_readAnything(EEPROM_COORDINATES, Destination);     // Read the coordinates and stuff them into variables
 
@@ -254,8 +254,8 @@ void loop()  // The Arduino loop() function
         Text("Programming mode", "Resetting attempts", "", "", 2000);
         Text("New coordinates", "programmed to", "", "",0);           // No delay, delay is in next function
         Print_DDDMMMMM(lat, lon);                                     // Print the Degree Minutes on the OLED
-        Destination.LATITUDE = lat;                                   // Store lat into eeprom variable
-        Destination.LONGITUDE = lon;                                  // Store lon into eeprom variable
+        Destination.LATITUDE = lat;                                   // Store latitude into EEPROM variable
+        Destination.LONGITUDE = lon;                                  // Store longitude into EEPROM variable
         EEPROM_writeAnything(EEPROM_COORDINATES, Destination);        // Store the coordinates to EEPROM
         servo.write(SERVO_OPEN);                                      // Open the lock so that the switch can be set to normal mode
         if (EEPROM.read(EEPROM_ATTEMPT_COUNTER)) {                    // Is AttemptCounter greater than 0?
@@ -500,9 +500,9 @@ void ResetBox()
   oled.print(F("Unlocking for 20 sec"));
   servo.write(SERVO_OPEN);                                  // Open the lock
 //  EEPROM.write(EEPROM_COORDINATES, 0xFF);                 // Reset the coordinates in EEPROM
-   Destination.LATITUDE = DEST_LATITUDE;                    // Store the initial coordinate to eeprom
+   Destination.LATITUDE = DEST_LATITUDE;                    // Store the initial coordinate to EEPROM
    Destination.LONGITUDE = DEST_LONGITUDE;                  // It will be overwritten by the new coordinates set by user
-   EEPROM_writeAnything(EEPROM_COORDINATES, Destination);   // Write it to eeprom
+   EEPROM_writeAnything(EEPROM_COORDINATES, Destination);   // Write it to EEPROM
   if (EEPROM.read(EEPROM_ATTEMPT_COUNTER)) EEPROM.write(EEPROM_ATTEMPT_COUNTER, 0); // Set AttemptCounter to 0, but only if it is not 0
   if (EEPROM.read(EEPROM_FOUND_TARGET)) EEPROM.write(EEPROM_FOUND_TARGET, false);   // Set the FoundFlag to false in EEPROM, but only if it is true
   delay(20000);                                             // Wait 20 seconds
